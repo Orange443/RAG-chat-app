@@ -1,7 +1,8 @@
 import streamlit as st
 import os
+import time
 from pypdf import PdfReader
-from langchain.text_splitter import CharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings  # Updated import
 from langchain_community.vectorstores import FAISS
 from langchain.chains.question_answering import load_qa_chain
@@ -24,11 +25,8 @@ def main ():
         for page in pdf_reader.pages:
             text += page.extract_text()
 
-
-
         #Split into Chunks
-        text_splitter = CharacterTextSplitter(
-            separator="\n",
+        text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200,
             length_function=len
@@ -40,7 +38,7 @@ def main ():
         
         user_question = st.text_input("Ask any question about the PDF file:")
         if user_question:
-            docs = knowledge_base.similarity_search(user_question)
+            docs = knowledge_base.similarity_search(user_question, k=4)
 
             load_dotenv()
             groq_api_key = os.getenv("GROQ_API_KEY")
@@ -53,8 +51,11 @@ def main ():
                 groq_api_key=groq_api_key,
                 model_name="deepseek-r1-distill-llama-70b"
             )
-            chain = load_qa_chain(llm, chain_type="stuff")
-            response = chain.run(input_documents=docs, question=user_question)
+            chain = load_qa_chain(llm, chain_type="map_reduce")
+            with st.spinner("Generating response..."):
+                response = chain.run(input_documents=docs, question=user_question)
+            total_chars = sum(len(doc.page_content) for doc in docs)
+            st.markdown(f"Total characters being sent to LLM:  :blue[{total_chars}]")
             st.write(response)
         
 
