@@ -16,7 +16,7 @@ def main ():
     st.header("💬 Chat with PDF")
 
     #Upload File
-    pdf = st.file_uploader("Upload your PDF", type="pdf", accept_multiple_files=True)
+    pdf = st.file_uploader("Upload your PDF", type="pdf")
 
     #Extract the text
     if pdf is not None:
